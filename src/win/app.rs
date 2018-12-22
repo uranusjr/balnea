@@ -1,26 +1,22 @@
 use std::{mem, ptr};
 
-use winapi::shared::minwindef as mw;
-use winapi::um::libloaderapi as ld;
 use winapi::um::winuser as wu;
 
 use super::msgs;
 use super::Window;
 
 pub struct App {
-    pub(crate) hinstance: *mut mw::HINSTANCE__,
     pub(crate) win_count: usize,
 }
 
 impl App {
     fn new() -> Self {
-        let hinstance = unsafe { ld::GetModuleHandleW(ptr::null_mut()) };
-        Self { hinstance: hinstance, win_count: 0 }
+        Self { win_count: 0 }
     }
 
     pub fn create_window(&mut self, title: &str) -> Window {
         self.win_count += 1;
-        Window::new(self, title)
+        Window::new(title)
     }
 }
 

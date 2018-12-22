@@ -4,9 +4,8 @@ use winapi::shared::minwindef as mw;
 use winapi::shared::windef::HWND;
 use winapi::um::winuser as wu;
 
-use super::App;
 use super::msgs;
-use super::utils::{new_id, winstr};
+use super::utils::{hinstance, new_id, winstr};
 
 unsafe extern "system" fn wnd_proc(
     hwnd: HWND, message: mw::UINT,
@@ -27,19 +26,19 @@ unsafe extern "system" fn wnd_proc(
     wu::DefWindowProcW(hwnd, message, wparam, lparam)
 }
 
-pub struct Window<'a> {
-    app: &'a App,
+pub struct Window {
     hwnd: HWND,
     wndcls: wu::WNDCLASSW,
 }
 
-impl<'a> Window<'a> {
-    pub(crate) fn new(app: &'a App, title: &str) -> Self {
+impl Window {
+    pub(crate) fn new(title: &str) -> Self {
+        let hinstance = hinstance();
         let cls_name = winstr(&new_id());
         let wndcls = wu::WNDCLASSW {
             style: wu::CS_OWNDC | wu::CS_HREDRAW | wu::CS_VREDRAW,
             lpfnWndProc: Some(wnd_proc),
-            hInstance: app.hinstance,
+            hInstance: hinstance,
             lpszClassName: cls_name.as_ptr(),
             cbClsExtra: 0,
             cbWndExtra: 0,
@@ -55,18 +54,17 @@ impl<'a> Window<'a> {
                 cls_name.as_ptr(),
                 winstr(&title).as_ptr(),
                 wu::WS_OVERLAPPEDWINDOW,
-                wu::CW_USEDEFAULT,
-                wu::CW_USEDEFAULT,
-                wu::CW_USEDEFAULT,
-                wu::CW_USEDEFAULT,
-                ptr::null_mut(),
-                ptr::null_mut(),
-                app.hinstance,
-                ptr::null_mut(),
+                wu::CW_USEDEFAULT,  // x
+                wu::CW_USEDEFAULT,  // y
+                wu::CW_USEDEFAULT,  // w
+                wu::CW_USEDEFAULT,  // h
+                ptr::null_mut(),    // Parent.
+                ptr::null_mut(),    // Menu.
+                hinstance,
+                ptr::null_mut(),    // lpParam.
             )
         };
         Self {
-            app: app,
             wndcls: wndcls,
             hwnd: hwnd,
         }
@@ -80,9 +78,9 @@ impl<'a> Window<'a> {
     }
 }
 
-impl<'a> Drop for Window<'a> {
+impl Drop for Window {
     fn drop(&mut self) {
         let cls_name = self.wndcls.lpszClassName;
-        unsafe { wu::UnregisterClassW(cls_name, self.app.hinstance); }
+        unsafe { wu::UnregisterClassW(cls_name, hinstance()); }
     }
 }
