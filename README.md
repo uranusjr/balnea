@@ -12,17 +12,15 @@ This creates a window with a button inside. Clicking the button prints `Hello!` 
 extern crate balnea;
 
 fn main() {
-    let app = balnea::App::new("First app", "com.uranusjr.helloworld");
+    balnea::run("First app", "com.uranusjr.helloworld", |app| {
+        let bx = balnea::Box::new();
+        let btn = balnea_button!("Hello world", |_| { println!("Hello!"); });
+        btn.style().set_paddings(50);
+        bx.add(btn);
 
-    let bx = balnea::Box::new();
-    let button = balnea_button!("Hello world", |_| { println!("Hello!"); });
-    button.style().set_paddings(50);
-    bx.add(button);
-
-    let win = app.create_window(bx);
-    win.show();
-
-    app.main_loop();
+        let win = app.create_window(bx);
+        win.show();
+    });
 }
 ```
 

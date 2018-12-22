@@ -1,23 +1,44 @@
 use std::ptr;
 
+use winapi::shared::minwindef as mw;
 use winapi::shared::windef::HWND;
 use winapi::um::winuser as wu;
 
 use super::App;
-use super::utils::{HInstance, new_id, winstr};
+use super::msgs;
+use super::utils::{new_id, winstr};
 
-pub struct Window {
-    hinstance: HInstance,
+unsafe extern "system" fn wnd_proc(
+    hwnd: HWND, message: mw::UINT,
+    wparam: mw::WPARAM, lparam: mw::LPARAM) -> mw::LRESULT {
+
+    match message {
+        wu::WM_DESTROY => {
+            wu::PostMessageW(
+                ptr::null_mut(),
+                msgs::WINDOW_CLOSED,
+                0,
+                0,
+            );
+        }
+        _ => {},
+    }
+
+    wu::DefWindowProcW(hwnd, message, wparam, lparam)
+}
+
+pub struct Window<'a> {
+    app: &'a App,
     hwnd: HWND,
     wndcls: wu::WNDCLASSW,
 }
 
-impl Window {
-    pub(crate) fn new(app: &App, title: &str) -> Self {
+impl<'a> Window<'a> {
+    pub(crate) fn new(app: &'a App, title: &str) -> Self {
         let cls_name = winstr(&new_id());
         let wndcls = wu::WNDCLASSW {
             style: wu::CS_OWNDC | wu::CS_HREDRAW | wu::CS_VREDRAW,
-            lpfnWndProc: Some(wu::DefWindowProcW),
+            lpfnWndProc: Some(wnd_proc),
             hInstance: app.hinstance,
             lpszClassName: cls_name.as_ptr(),
             cbClsExtra: 0,
@@ -45,7 +66,7 @@ impl Window {
             )
         };
         Self {
-            hinstance: app.hinstance,
+            app: app,
             wndcls: wndcls,
             hwnd: hwnd,
         }
@@ -59,9 +80,9 @@ impl Window {
     }
 }
 
-impl Drop for Window {
+impl<'a> Drop for Window<'a> {
     fn drop(&mut self) {
         let cls_name = self.wndcls.lpszClassName;
-        unsafe { wu::UnregisterClassW(cls_name, self.hinstance); }
+        unsafe { wu::UnregisterClassW(cls_name, self.app.hinstance); }
     }
 }
